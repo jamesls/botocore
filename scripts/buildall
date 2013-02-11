@@ -35,7 +35,7 @@ for filename in os.listdir(SERVICES_DIR):
         dst = os.path.join(DEST_DIR, filename)
         print("Copying '%s' to '%s'" % (src, dst))
         shutil.copyfile(src=src, dst=dst)
-    elif filename.endswith('.json'):
+    elif filename.endswith('.json') and filename.count('.') == 1:
         full_cmd = '%s %s' % (BUILD_MODELS,
                                     os.path.join(SERVICES_DIR, filename))
         print("Running command: %s" % full_cmd)
