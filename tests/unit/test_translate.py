@@ -20,7 +20,7 @@
 # IN THE SOFTWARE.
 #
 from botocore.compat import unittest
-from botocore.translate import ModelFiles, translate
+from botocore.translate import ModelFiles, translate, merge_dicts
 
 
 SERVICES = {
@@ -205,11 +205,12 @@ class TestTranslateExtensions(unittest.TestCase):
 
     def test_can_add_extras_top_level_keys(self):
         # A use case here would be adding the iterator/waiter configs.
-        new_keys = {'extra': {'iterators': 'iterator_config'}}
+        new_keys = {'extra': {'paginators': 'paginator_config'}}
         self.model.enhancements = new_keys
         new_model = translate(self.model)
         # There should be a new top level key 'iterators' that was merged in.
-        self.assertEqual(new_model['iterators'], 'iterator_config')
+        self.assertEqual(new_model['paginators'], 'paginator_config')
+        self.assertIn('operations', new_model)
 
     def test_can_add_fields_to_operation(self):
         # A use case would be to add checksum info for a param.
@@ -253,6 +254,14 @@ class TestTranslateExtensions(unittest.TestCase):
             new_model['operations']['AssumeRole']['input']['members']\
                     ['Policy']['alsofrom'],
             'filename')
+        self.assertEqual(
+            new_model['operations']['AssumeRole']['input']['members']\
+                    ['Policy']['type'],
+            'string')
+        self.assertEqual(
+            new_model['operations']['AssumeRole']['input']['members']\
+                    ['RoleArn']['shape_name'],
+            'arnType')
 
 
 class TestTranslateModel(unittest.TestCase):
@@ -310,8 +319,8 @@ class TestTranslateModel(unittest.TestCase):
                 'merge_key': 'reservedInstancesListingsSet',
             })
 
-    def test_iterators_are_validated(self):
-        # Can't create an iterator that referse to a non existent
+    def test_paginators_are_validated(self):
+        # Can't create a paginator config that refers to a non existent
         # operation.
         extra = {
             'extra': {
@@ -337,6 +346,52 @@ class TestTranslateModel(unittest.TestCase):
 
     def test_map_types_to_python_types(self):
         pass
+
+
+class TestDictMerg(unittest.TestCase):
+    def test_merge_dicts_overrides(self):
+        first = {'foo': {'bar': {'baz': {'one': 'ORIGINAL', 'two': 'ORIGINAL'}}}}
+        second = {'foo': {'bar': {'baz': {'one': 'UPDATE'}}}}
+
+        merge_dicts(first, second)
+        # The value from the second dict wins.
+        self.assertEqual(first['foo']['bar']['baz']['one'], 'UPDATE')
+        # And we still preserve the other attributes.
+        self.assertEqual(first['foo']['bar']['baz']['two'], 'ORIGINAL')
+
+    def test_merge_dicts_new_keys(self):
+        first = {'foo': {'bar': {'baz': {'one': 'ORIGINAL', 'two': 'ORIGINAL'}}}}
+        second = {'foo': {'bar': {'baz': {'three': 'UPDATE'}}}}
+
+        merge_dicts(first, second)
+        self.assertEqual(first['foo']['bar']['baz']['one'], 'ORIGINAL')
+        self.assertEqual(first['foo']['bar']['baz']['two'], 'ORIGINAL')
+        self.assertEqual(first['foo']['bar']['baz']['three'], 'UPDATE')
+
+    def test_merge_empty_dict_does_nothing(self):
+        first = {'foo': {'bar': 'baz'}}
+        merge_dicts(first, {})
+        self.assertEqual(first, {'foo': {'bar': 'baz'}})
+
+    def test_more_than_one_sub_dict(self):
+        first = {'one': {'inner': 'ORIGINAL', 'inner2': 'ORIGINAL'},
+                 'two': {'inner': 'ORIGINAL', 'inner2': 'ORIGINAL'}}
+        second = {'one': {'inner': 'UPDATE'}, 'two': {'inner': 'UPDATE'}}
+
+        merge_dicts(first, second)
+        self.assertEqual(first['one']['inner'], 'UPDATE')
+        self.assertEqual(first['one']['inner2'], 'ORIGINAL')
+
+        self.assertEqual(first['two']['inner'], 'UPDATE')
+        self.assertEqual(first['two']['inner2'], 'ORIGINAL')
+
+    def test_new_keys(self):
+        first = {'one': {'inner': 'ORIGINAL'}, 'two': {'inner': 'ORIGINAL'}}
+        second = {'three': {'foo': {'bar': 'baz'}}}
+        # In this case, second has no keys in common, but we'd still expect
+        # this to get merged.
+        merge_dicts(first, second)
+        self.assertEqual(first['three']['foo']['bar'], 'baz')
 
 
 if __name__ == '__main__':

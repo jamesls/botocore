@@ -71,7 +71,7 @@ def translate(model):
         new_model,
         model.enhancements.get('extra', {}).get('pagination', {}))
     new_model['metadata'] = service_info.copy()
-    new_model['operations'].update(model.enhancements.get('operations', {}))
+    merge_dicts(new_model['operations'], model.enhancements.get('operations', {}))
     return new_model
 
 
@@ -108,3 +108,25 @@ def transform_operations_list(new_model):
         name = operation.pop('name')
         operations_map[name] = operation
     new_model['operations'] = operations_map
+
+
+def merge_dicts(dict1, dict2):
+    """Given two dict, merge the second dict into the first.
+
+    The dicts can have arbitrary nesting.
+
+    """
+    for key in dict2:
+        if is_sequence(dict2[key]):
+            if key in dict1 and key in dict2:
+                merge_dicts(dict1[key], dict2[key])
+            else:
+                dict1[key] = dict2[key]
+        else:
+            # At scalar types, we iterate and merge the
+            # current dict that we're on.
+            dict1[key] = dict2[key]
+
+
+def is_sequence(x):
+    return isinstance(x, (list, dict))
