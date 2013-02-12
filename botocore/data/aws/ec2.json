@@ -9534,8 +9534,8 @@
             "documentation": "\n        <p>\n        The DescribeReservedInstancesOfferings operation describes Reserved\n        Instance offerings that are available for purchase. With Amazon EC2\n        Reserved Instances, you purchase the right to launch Amazon EC2 instances\n        for a period of time (without getting insufficient capacity errors) and\n        pay a lower usage rate for the actual time used.\n        </p>\n    ",
             "pagination": {
                 "input_token": "NextToken",
-                "max_results": "MaxResults",
                 "output_token": "NextToken",
+                "max_results": "MaxResults",
                 "merge_key": "reservedInstancesListingsSet"
             }
         },
@@ -17396,8 +17396,8 @@
     "pagination": {
         "DescribeReservedInstancesOfferings": {
             "input_token": "NextToken",
-            "max_results": "MaxResults",
             "output_token": "NextToken",
+            "max_results": "MaxResults",
             "merge_key": "reservedInstancesListingsSet"
         }
     },
