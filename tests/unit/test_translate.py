@@ -297,16 +297,14 @@ class TestTranslateModel(unittest.TestCase):
         # This may or may not pan out, but if a pagination config is
         # specified, that info is merged into the specific operations.
         extra = {
-            'extra': {
-                'pagination': {
-                    'AssumeRole': {
-                        'input_token': 'NextToken',
-                        'output_token': 'NextToken',
-                        'max_results': 'MaxResults',
-                        'merge_key': 'reservedInstancesListingsSet',
-                    }
+            'pagination': {
+                'AssumeRole': {
+                    'input_token': 'NextToken',
+                    'output_token': 'NextToken',
+                    'max_results': 'MaxResults',
+                    'merge_key': 'reservedInstancesListingsSet',
                 }
-            },
+            }
         }
         self.model.enhancements = extra
         new_model = translate(self.model)
@@ -323,16 +321,14 @@ class TestTranslateModel(unittest.TestCase):
         # Can't create a paginator config that refers to a non existent
         # operation.
         extra = {
-            'extra': {
-                'pagination': {
-                    'UnknownOperation': {
-                        'input_token': 'NextToken',
-                        'output_token': 'NextToken',
-                        'max_results': 'MaxResults',
-                        'merge_key': 'reservedInstancesListingsSet',
-                    }
+            'pagination': {
+                'UnknownOperation': {
+                    'input_token': 'NextToken',
+                    'output_token': 'NextToken',
+                    'max_results': 'MaxResults',
+                    'merge_key': 'reservedInstancesListingsSet',
                 }
-            },
+            }
         }
         self.model.enhancements = extra
         with self.assertRaises(ValueError):

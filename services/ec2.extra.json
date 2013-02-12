@@ -1,12 +1,10 @@
 {
-    "extra": {
-        "pagination": {
-            "DescribeReservedInstancesOfferings": {
-                "input_token": "NextToken",
-                "output_token": "NextToken",
-                "max_results": "MaxResults",
-                "merge_key": "reservedInstancesListingsSet"
-            }
+    "pagination": {
+        "DescribeReservedInstancesOfferings": {
+            "input_token": "NextToken",
+            "output_token": "NextToken",
+            "max_results": "MaxResults",
+            "merge_key": "reservedInstancesListingsSet"
         }
     }
 }

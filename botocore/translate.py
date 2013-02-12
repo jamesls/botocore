@@ -69,7 +69,7 @@ def translate(model):
     service_info = model.services.get(model.name, {})
     merge_pagination_configs(
         new_model,
-        model.enhancements.get('extra', {}).get('pagination', {}))
+        model.enhancements.get('pagination', {}))
     new_model['metadata'] = service_info.copy()
     merge_dicts(new_model['operations'], model.enhancements.get('operations', {}))
     return new_model
