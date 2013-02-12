@@ -334,6 +334,19 @@ class TestTranslateModel(unittest.TestCase):
         with self.assertRaises(ValueError):
             new_model = translate(self.model)
 
+    def test_paginators_are_placed_into_top_level_key(self):
+        extra = {
+            'pagination': {
+                'AssumeRole': {
+                    'input_token': 'NextToken',
+                    'output_token': 'NextToken',
+                }
+            }
+        }
+        self.model.enhancements = extra
+        new_model = translate(self.model)
+        self.assertEqual(new_model['pagination'], extra['pagination'])
+
     def test_translate_operation_casing(self):
         pass
 

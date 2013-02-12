@@ -22,7 +22,7 @@ class ModelFiles(object):
         * The json service description.
         * The _services.json file.
         * The _regions.json file.
-        * The <service>.py enhancements file.
+        * The <service>.extra.json enhancements file.
         * The name of the service.
 
     """
@@ -41,25 +41,18 @@ def load_model_files(args):
                         object_pairs_hook=OrderedDict)
     regions = json.load(open(args.regions_file),
                         object_pairs_hook=OrderedDict)
-    enhancements = json.load(open(args.regions_file),
-                             object_pairs_hook=OrderedDict)
+    enhancements = _load_enhancements_file(args.enhancements_file)
     service_name = os.path.splitext(os.path.basename(args.modelfile))[0]
     return ModelFiles(model, services, regions, enhancements,
                       name=service_name)
 
 
-def _import_python_file(file_path):
-    directory = os.path.dirname(os.path.abspath(file_path))
-    sys.path.append(directory)
-    module_name = os.path.splitext(os.path.basename(file_path))[0]
-    try:
-        module = __import__(module_name)
-        enhancements = getattr(module, 'MODEL', {})
-    except ImportError:
-        # This file is optional, so if it doesn't exist, an empty
-        # dict is returned.
-        enhancements = {}
-    return enhancements
+def _load_enhancements_file(file_path):
+    if not os.path.isfile(file_path):
+        return {}
+    else:
+        return json.load(open(file_path),
+                         object_pairs_hook=OrderedDict)
 
 
 def translate(model):
@@ -67,7 +60,7 @@ def translate(model):
     transform_operations_list(new_model)
     new_model.update(model.enhancements.get('extra', {}))
     service_info = model.services.get(model.name, {})
-    merge_pagination_configs(
+    add_pagination_configs(
         new_model,
         model.enhancements.get('pagination', {}))
     new_model['metadata'] = service_info.copy()
@@ -75,7 +68,12 @@ def translate(model):
     return new_model
 
 
-def merge_pagination_configs(new_model, pagination):
+def add_pagination_configs(new_model, pagination):
+    # Adding in pagination configs means copying the config to a top level
+    # 'pagination' key in the new model, and it also means adding the
+    # pagination config to each individual operation.
+    if pagination:
+        new_model['pagination'] = pagination
     for name in pagination:
         config = pagination[name]
         operation = new_model['operations'].get(name)

@@ -21,7 +21,7 @@ def add_defaults_args(args):
     if args.regions_file is None:
         args.regions_file = os.path.join(directory, '_regions.json')
     if args.enhancements_file is None:
-        args.enhancements_file = args.modelfile.replace('.json', '.py')
+        args.enhancements_file = args.modelfile.replace('.json', '.extra.json')
 
 
 def main():
