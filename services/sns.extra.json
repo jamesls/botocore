@@ -1,0 +1,15 @@
+{
+    "pagination": {
+        "ListSubscriptions": {
+            "token_key": "NextToken",
+            "token_param": "NextToken"    },
+        "ListSubscriptionsByTopic": {
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "ListTopics": {
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        }
+    }
+}

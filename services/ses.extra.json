@@ -1,0 +1,9 @@
+{
+    "pagination": {
+        "ListIdentities": {
+            "result_key": "Identities",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        }
+    }
+}

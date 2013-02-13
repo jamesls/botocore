@@ -1139,7 +1139,12 @@
                     "documentation": "\n        <p>\n         The <code>NextToken</code> value is invalid.\n        </p>\n    "
                 }
             ],
-            "documentation": "\n        <p>\n            Returns a full description of each Auto Scaling group in the given list. \n            This includes all Amazon EC2 instances that are members of the group. \n            If a list of names is not provided, the service returns the\n            full details of all Auto Scaling groups.\n        </p>\n        <p>\n            This action supports pagination by returning a token if there are more pages to retrieve.\n            To get the next page, call this action again with the returned token as the <code>NextToken</code> parameter.\n        </p>\n    "
+            "documentation": "\n        <p>\n            Returns a full description of each Auto Scaling group in the given list. \n            This includes all Amazon EC2 instances that are members of the group. \n            If a list of names is not provided, the service returns the\n            full details of all Auto Scaling groups.\n        </p>\n        <p>\n            This action supports pagination by returning a token if there are more pages to retrieve.\n            To get the next page, call this action again with the returned token as the <code>NextToken</code> parameter.\n        </p>\n    ",
+            "pagination": {
+                "limit_key": "MaxResults",
+                "token_key": "NextToken",
+                "token_param": "NextToken"
+            }
         },
         "DescribeAutoScalingInstances": {
             "input": {
@@ -1271,7 +1276,12 @@
                     "documentation": "\n        <p>\n         The <code>NextToken</code> value is invalid.\n        </p>\n    "
                 }
             ],
-            "documentation": "\n        <p>\n            Returns a description of each Auto Scaling instance in the <code>InstanceIds</code> list.\n            If a list is not provided, the service returns the full details of all instances up to a maximum of 50. \n            By default, the service returns a list of 20 items.\n        </p>\n        <p>\n            This action supports pagination by returning a token if there are more pages to retrieve.\n            To get the next page, call this action again with the returned token as the <code>NextToken</code> parameter.\n        </p>\n    "
+            "documentation": "\n        <p>\n            Returns a description of each Auto Scaling instance in the <code>InstanceIds</code> list.\n            If a list is not provided, the service returns the full details of all instances up to a maximum of 50. \n            By default, the service returns a list of 20 items.\n        </p>\n        <p>\n            This action supports pagination by returning a token if there are more pages to retrieve.\n            To get the next page, call this action again with the returned token as the <code>NextToken</code> parameter.\n        </p>\n    ",
+            "pagination": {
+                "limit_key": "MaxResults",
+                "token_key": "NextToken",
+                "token_param": "NextToken"
+            }
         },
         "DescribeAutoScalingNotificationTypes": {
             "input": null,
@@ -1541,7 +1551,12 @@
                     "documentation": "\n        <p>\n         The <code>NextToken</code> value is invalid.\n        </p>\n    "
                 }
             ],
-            "documentation": "\n        <p>\n        Returns a full description of the launch configurations, or the specified launch configurations,\n        if they exist.\n        </p>\n        <p>\n        If no name is specified, then the full details of\n        all launch configurations are returned.\n        </p>\n    "
+            "documentation": "\n        <p>\n        Returns a full description of the launch configurations, or the specified launch configurations,\n        if they exist.\n        </p>\n        <p>\n        If no name is specified, then the full details of\n        all launch configurations are returned.\n        </p>\n    ",
+            "pagination": {
+                "limit_key": "MaxResults",
+                "token_key": "NextToken",
+                "token_param": "NextToken"
+            }
         },
         "DescribeMetricCollectionTypes": {
             "input": null,
@@ -1696,7 +1711,12 @@
                     "documentation": "\n        <p>\n         The <code>NextToken</code> value is invalid.\n        </p>\n    "
                 }
             ],
-            "documentation": "\n        <p>\n            Returns a list of notification actions associated with Auto Scaling groups \n            for specified events.\n        </p>\n    "
+            "documentation": "\n        <p>\n            Returns a list of notification actions associated with Auto Scaling groups \n            for specified events.\n        </p>\n    ",
+            "pagination": {
+                "limit_key": "MaxResults",
+                "token_key": "NextToken",
+                "token_param": "NextToken"
+            }
         },
         "DescribePolicies": {
             "input": {
@@ -1857,7 +1877,12 @@
                     "documentation": "\n        <p>\n         The <code>NextToken</code> value is invalid.\n        </p>\n    "
                 }
             ],
-            "documentation": "\n        <p>\n            Returns descriptions of what each policy does.\n            This action supports pagination. If the response includes a token, \n            there are more records available. To get the additional records, repeat\n            the request with the response token as the <code>NextToken</code> parameter.\n        </p>\n    "
+            "documentation": "\n        <p>\n            Returns descriptions of what each policy does.\n            This action supports pagination. If the response includes a token, \n            there are more records available. To get the additional records, repeat\n            the request with the response token as the <code>NextToken</code> parameter.\n        </p>\n    ",
+            "pagination": {
+                "limit_key": "MaxResults",
+                "token_key": "NextToken",
+                "token_param": "NextToken"
+            }
         },
         "DescribeScalingActivities": {
             "input": {
@@ -2019,7 +2044,12 @@
                     "documentation": "\n        <p>\n         The <code>NextToken</code> value is invalid.\n        </p>\n    "
                 }
             ],
-            "documentation": "\n        <p>\n            Returns the scaling activities for the specified Auto Scaling group.\n        </p>\n        <p>\n            If the specified <code>ActivityIds</code> list is empty,\n            all the activities from the past six weeks are returned.\n            Activities are sorted by completion time.\n            Activities still in progress appear first on the list.\n        </p>\n        <p>\n            This action supports pagination. If the response includes a token, \n            there are more records available. To get the additional records, repeat\n            the request with the response token as the <code>NextToken</code> parameter.            \n        </p>\n    "
+            "documentation": "\n        <p>\n            Returns the scaling activities for the specified Auto Scaling group.\n        </p>\n        <p>\n            If the specified <code>ActivityIds</code> list is empty,\n            all the activities from the past six weeks are returned.\n            Activities are sorted by completion time.\n            Activities still in progress appear first on the list.\n        </p>\n        <p>\n            This action supports pagination. If the response includes a token, \n            there are more records available. To get the additional records, repeat\n            the request with the response token as the <code>NextToken</code> parameter.            \n        </p>\n    ",
+            "pagination": {
+                "limit_key": "MaxResults",
+                "token_key": "NextToken",
+                "token_param": "NextToken"
+            }
         },
         "DescribeScalingProcessTypes": {
             "input": null,
@@ -2210,7 +2240,12 @@
                     "documentation": "\n        <p>\n         The <code>NextToken</code> value is invalid.\n        </p>\n    "
                 }
             ],
-            "documentation": "\n        <p>\n            Lists all the actions scheduled for your Auto Scaling group that haven't been executed. To see a list of\n            actions already executed, see the activity record returned in <a>DescribeScalingActivities</a>.  \n        </p>\n    "
+            "documentation": "\n        <p>\n            Lists all the actions scheduled for your Auto Scaling group that haven't been executed. To see a list of\n            actions already executed, see the activity record returned in <a>DescribeScalingActivities</a>.  \n        </p>\n    ",
+            "pagination": {
+                "limit_key": "MaxResults",
+                "token_key": "NextToken",
+                "token_param": "NextToken"
+            }
         },
         "DescribeTags": {
             "input": {
@@ -2337,7 +2372,12 @@
                     "documentation": "\n        <p>\n         The <code>NextToken</code> value is invalid.\n        </p>\n    "
                 }
             ],
-            "documentation": "\n        <p>\n            Lists the Auto Scaling group tags.  \n        </p>\n        <p>\n            You can use filters to limit results when describing tags. For example, you can query for \n            tags of a particular Auto Scaling group. You can specify multiple values for a filter. A \n            tag must match at least one of the specified values for it to be included in the results. \n        </p>\n        <p>\n            You can also specify multiple filters. The result includes information for a particular \n            tag only if it matches all your filters. If there's no match, no special message is returned.\n        </p>\n    "
+            "documentation": "\n        <p>\n            Lists the Auto Scaling group tags.  \n        </p>\n        <p>\n            You can use filters to limit results when describing tags. For example, you can query for \n            tags of a particular Auto Scaling group. You can specify multiple values for a filter. A \n            tag must match at least one of the specified values for it to be included in the results. \n        </p>\n        <p>\n            You can also specify multiple filters. The result includes information for a particular \n            tag only if it matches all your filters. If there's no match, no special message is returned.\n        </p>\n    ",
+            "pagination": {
+                "limit_key": "MaxResults",
+                "token_key": "NextToken",
+                "token_param": "NextToken"
+            }
         },
         "DescribeTerminationPolicyTypes": {
             "input": null,
@@ -3139,6 +3179,48 @@
                 }
             ],
             "documentation": "\n        <p>\n        Updates the configuration for the specified <a>AutoScalingGroup</a>.\n        </p>\n        <note>\n            <p>\n                To update an Auto Scaling group with a launch configuration\n                that has the <code>InstanceMonitoring</code> flag\n                set to <code>False</code>, you must first ensure that collection\n                of group metrics is disabled. Otherwise, calls to \n                <a>UpdateAutoScalingGroup</a> will fail.\n                If you have previously enabled group metrics collection, \n                you can disable collection of all group metrics\n                by calling <a>DisableMetricsCollection</a>.\n                \n            </p>\n        </note>\n        <p>\n        The new settings are registered upon the completion of this call.\n        Any launch configuration settings take effect on any triggers after\n        this call returns.\n        Triggers that are currently in progress aren't affected.\n        </p>\n        <note>\n            <ul>\n                <li>\n                    <p>If a new value is specified for <i>MinSize</i> without specifying the value for <i>DesiredCapacity</i>, \n                        and if the new <i>MinSize</i> is larger than the current size of the Auto Scaling Group, there\n                        will be an implicit call to <a>SetDesiredCapacity</a> to set the group to the new <i>MinSize</i>. </p>\n                </li>\n                <li>\n                    <p>If a new value is specified for <i>MaxSize</i> without specifying the value for <i>DesiredCapacity</i>, and \n                        the new <i>MaxSize</i> is smaller than the current size of the Auto Scaling Group, there will \n                        be an implicit call to <a>SetDesiredCapacity</a> to set the group to the new <i>MaxSize</i>. </p>\n                </li>\n                <li>\n                    <p>All other optional parameters are left unchanged if not passed in the request.</p>\n                </li>\n            </ul>\n        </note>\n        \n    "
+        }
+    },
+    "pagination": {
+        "DescribeAutoScalingGroups": {
+            "limit_key": "MaxResults",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "DescribeAutoScalingInstances": {
+            "limit_key": "MaxResults",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "DescribeLaunchConfigurations": {
+            "limit_key": "MaxResults",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "DescribeNotificationConfigurations": {
+            "limit_key": "MaxResults",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "DescribePolicies": {
+            "limit_key": "MaxResults",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "DescribeScalingActivities": {
+            "limit_key": "MaxResults",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "DescribeScheduledActions": {
+            "limit_key": "MaxResults",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "DescribeTags": {
+            "limit_key": "MaxResults",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
         }
     },
     "metadata": {

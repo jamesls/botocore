@@ -1,0 +1,19 @@
+{
+    "pagination": {
+        "DescribeAlarmHistory": {
+            "limit_key": "MaxResults",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "DescribeAlarms": {
+            "limit_key": "MaxResults",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "ListMetrics": {
+            "limit_key": "MaxResults",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        }
+    }
+}

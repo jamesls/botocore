@@ -1,0 +1,88 @@
+{
+    "pagination": {
+        "DescribeDBEngineVersions": {
+            "limit_key": "MaxRecords",
+            "result_key": "",
+            "token_token": "Marker",
+            "token_param": "Marker"
+        },
+        "DescribeDBInstances": {
+            "limit_key": "MaxRecords",
+            "result_key": "",
+            "token_token": "Marker",
+            "token_param": "Marker"
+        },
+        "DescribeDBParameterGroups": {
+            "limit_key": "MaxRecords",
+            "result_key": "",
+            "token_token": "Marker",
+            "token_param": "Marker"
+        },
+        "DescribeDBParameters": {
+            "limit_key": "MaxRecords",
+            "result_key": "",
+            "token_token": "Marker",
+            "token_param": "Marker"
+        },
+        "DescribeDBSecurityGroups": {
+            "limit_key": "MaxRecords",
+            "result_key": "",
+            "token_token": "Marker",
+            "token_param": "Marker"
+        },
+        "DescribeDBSnapshots": {
+            "limit_key": "MaxRecords",
+            "result_key": "",
+            "token_token": "Marker",
+            "token_param": "Marker"
+        },
+        "DescribeDBSubnetGroups": {
+            "limit_key": "MaxRecords",
+            "result_key": "",
+            "token_token": "Marker",
+            "token_param": "Marker"
+        },
+        "DescribeEngineDefaultParameters": {
+            "limit_key": "MaxRecords",
+            "result_key": "",
+            "token_token": "Marker",
+            "token_param": "Marker"
+        },
+        "DescribeEvents": {
+            "limit_key": "MaxRecords",
+            "result_key": "",
+            "token_token": "Marker",
+            "token_param": "Marker"
+        },
+        "DescribeOptionGroupOptions": {
+            "limit_key": "MaxRecords",
+            "result_key": "",
+            "token_token": "Marker",
+            "token_param": "Marker"
+        },
+        "DescribeOptionGroups": {
+            "limit_key": "MaxRecords",
+            "result_key": "",
+            "token_token": "Marker",
+            "token_param": "Marker"
+        },
+        "DescribeOrderableDBInstanceOptions": {
+            "limit_key": "MaxRecords",
+            "result_key": "",
+            "token_token": "Marker",
+            "token_param": "Marker"
+        },
+        "DescribeReservedDBInstances": {
+            "limit_key": "MaxRecords",
+            "result_key": "",
+            "token_token": "Marker",
+            "token_param": "Marker"
+        },
+        "DescribeReservedDBInstancesOfferings": {
+            "limit_key": "MaxRecords",
+            "result_key": "",
+            "token_token": "Marker",
+            "token_param": "Marker"
+        }
+    }
+}

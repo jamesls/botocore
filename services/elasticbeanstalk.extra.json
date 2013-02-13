@@ -1,0 +1,10 @@
+{
+    "pagination": {
+        "DescribeEvents": {
+            "limit_key": "MaxRecords",
+            "result_key": "Events",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        }
+    }
+}

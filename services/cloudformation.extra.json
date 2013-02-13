@@ -1,0 +1,20 @@
+{
+    "pagination": {
+        "DescribeStackEvents": {
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "DescribeStacks": {
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "ListStackResources": {
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "ListStacks": {
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        }
+    }
+}

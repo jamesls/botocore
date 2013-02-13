@@ -1,0 +1,44 @@
+{
+    "pagination": {
+        "DescribeAutoScalingGroups": {
+            "limit_key": "MaxResults",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "DescribeAutoScalingInstances": {
+            "limit_key": "MaxResults",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "DescribeLaunchConfigurations": {
+            "limit_key": "MaxResults",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "DescribeNotificationConfigurations": {
+            "limit_key": "MaxResults",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "DescribePolicies": {
+            "limit_key": "MaxResults",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "DescribeScalingActivities": {
+            "limit_key": "MaxResults",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "DescribeScheduledActions": {
+            "limit_key": "MaxResults",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "DescribeTags": {
+            "limit_key": "MaxResults",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        }
+    }
+}

@@ -1,0 +1,9 @@
+{
+    "pagination": {
+        "DescribeLoadBalancers": {
+            "result_key": "LoadBalancerDescriptions",
+            "token_key": "NextMarker",
+            "token_param": "Marker"
+        }
+    }
+}

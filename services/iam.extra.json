@@ -1,0 +1,100 @@
+{
+    "pagination": {
+        "GetGroup": {
+            "more_key": "IsTruncated",
+            "result_key": "Users",
+            "token_key": "Marker",
+            "token_param": "Marker"
+        },
+        "ListAccessKeys": {
+            "more_key": "IsTruncated",
+            "result_key": "AccessKeyMetadata",
+            "token_key": "Marker",
+            "token_param": "Marker"
+        },
+        "ListAccountAliases": {
+            "more_key": "IsTruncated",
+            "result_key": "AccountAliases",
+            "token_key": "Marker",
+            "token_param": "Marker"
+        },
+        "ListGroupPolicies": {
+            "more_key": "IsTruncated",
+            "result_key": "PolicyNames",
+            "token_key": "Marker",
+            "token_param": "Marker"
+        },
+        "ListGroups": {
+            "more_key": "IsTruncated",
+            "result_key": "Groups",
+            "token_key": "Marker",
+            "token_param": "Marker"
+        },
+        "ListGroupsForUser": {
+            "more_key": "IsTruncated",
+            "result_key": "Groups",
+            "token_key": "Marker",
+            "token_param": "Marker"
+        },
+        "ListInstanceProfiles": {
+            "more_key": "IsTruncated",
+            "result_key": "InstanceProfiles",
+            "token_key": "Marker",
+            "token_param": "Marker"
+        },
+        "ListInstanceProfilesForRole": {
+            "more_key": "IsTruncated",
+            "result_key": "InstanceProfiles",
+            "token_key": "Marker",
+            "token_param": "Marker"
+        },
+        "ListMFADevices": {
+            "more_key": "IsTruncated",
+            "result_key": "MFADevices",
+            "token_key": "Marker",
+            "token_param": "Marker"
+        },
+        "ListRolePolicies": {
+            "more_key": "IsTruncated",
+            "result_key": "PolicyNames",
+            "token_key": "Marker",
+            "token_param": "Marker"
+        },
+        "ListRoles": {
+            "more_key": "IsTruncated",
+            "result_key": "Roles",
+            "token_key": "Marker",
+            "token_param": "Marker"
+        },
+        "ListServerCertificates": {
+            "more_key": "IsTruncated",
+            "result_key": "ServerCertificateMetadataList",
+            "token_key": "Marker",
+            "token_param": "Marker"
+        },
+        "ListSigningCertificates": {
+            "more_key": "IsTruncated",
+            "result_key": "Certificates",
+            "token_key": "Marker",
+            "token_param": "Marker"
+        },
+        "ListUserPolicies": {
+            "more_key": "IsTruncated",
+            "result_key": "PolicyNames",
+            "token_key": "Marker",
+            "token_param": "Marker"
+        },
+        "ListUsers": {
+            "more_key": "IsTruncated",
+            "result_key": "Users",
+            "token_key": "Marker",
+            "token_param": "Marker"
+        },
+        "ListVirtualMFADevices": {
+            "more_key": "IsTruncated",
+            "result_key": "VirtualMFADevices",
+            "token_key": "Marker",
+            "token_param": "Marker"
+        }
+    }
+}

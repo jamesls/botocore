@@ -1,10 +1,28 @@
 {
     "pagination": {
+        "DescribeInstanceStatus": {
+            "limit_key": "MaxResults",
+            "result_key": "InstanceStatuses",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
         "DescribeReservedInstancesOfferings": {
-            "input_token": "NextToken",
-            "output_token": "NextToken",
-            "max_results": "MaxResults",
-            "merge_key": "reservedInstancesListingsSet"
+            "limit_key": "MaxResults",
+            "result_key": "ReservedInstancesOfferings",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "DescribeSpotPriceHistory": {
+            "limit_key": "MaxResults",
+            "result_key": "SpotPriceHistory",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
+        },
+        "DescribeVolumeStatus": {
+            "limit_key": "MaxResults",
+            "result_key": "VolumeStatuses",
+            "token_key": "NextToken",
+            "token_param": "NextToken"
         }
     }
 }
