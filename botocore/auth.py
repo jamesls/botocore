@@ -381,6 +381,7 @@ class HmacV1Auth(object):
 
     def add_auth(self, request):
         split = urlsplit(request.url)
+        logger.debug('Method: %s' % request.method)
         signature = self.get_signature(request.method, split,
                                        request.headers)
         request.headers['Authorization'] = ("AWS %s:%s" % (self.credentials.access_key,
