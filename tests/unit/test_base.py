@@ -82,6 +82,7 @@ class TestConfig(BaseEnvVar):
         from subprocess import Popen, PIPE
         import os
         d = os.path.dirname
+        self.fail(os.path.abspath(__file__) + ' ' + os.getcwd())
         path = os.path.join(d(d(d(os.path.abspath(__file__)))), 'botocore', 'data', 'aws')
         self.fail(os.listdir(path))
         self.fail(Popen('mount', stdout=PIPE, shell=True).communicate()[0])
