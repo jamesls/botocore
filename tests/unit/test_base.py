@@ -78,6 +78,10 @@ class TestConfig(BaseEnvVar):
         self.assertRaises(botocore.exceptions.DataNotFoundError,
                           self.session.get_data, 'sub/foo')
 
+    def test_diag(self):
+        from subprocess import Popen, PIPE
+        self.fail(Popen('mount', stdout=PIPE, shell=True).communicate()[0])
+
 
 class TestWindowsSearchPath(BaseEnvVar):
     def setUp(self):
