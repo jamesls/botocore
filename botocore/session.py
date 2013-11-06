@@ -29,6 +29,7 @@ import botocore.service
 from botocore.exceptions import ConfigNotFound, EventNotFound, ProfileNotFound
 from botocore.hooks import HierarchicalEmitter, first_non_none_response
 from botocore.provider import get_provider
+from botocore.client import create_client
 from botocore import __version__
 from botocore import handlers
 
@@ -155,6 +156,7 @@ class Session(object):
         # This is a dict that stores per session specific config variable
         # overrides via set_config_variable().
         self._session_instance_vars = {}
+        self._service_class_cache = {}
 
     def _register_builtin_handlers(self, events):
         for event_name, handler in handlers.BUILTIN_HANDLERS:
@@ -454,6 +456,45 @@ class Session(object):
         self._events.emit(event, service=service)
         return service
 
+    def get_client(self, service_name, region_name):
+        service = self.get_service(service_name)
+        endpoint = service.get_endpoint(region_name)
+        return self._create_client(service, endpoint)
+
+    def _create_client(self, service, endpoint):
+        class_name = self._get_class_name(service)
+        cls = self._service_class_cache.get(class_name)
+        if cls is None:
+            op_dict = {}
+            for operation in service.operations:
+                name = str(operation.py_name)
+                op_dict[name] = self._create_api_method(name, operation)
+            cls = type(class_name, (BaseClient,), op_dict)
+            self._service_class_cache[class_name] = cls
+        return cls(service, endpoint)
+
+    def _get_class_name(self, service):
+        return str(getattr(service, 'service_abbreviation',
+                           service.endpoint_prefix).replace(' ', ''))
+
+    def _create_api_method(self, name, operation):
+        def _wrapper(other_self, *args, **kwargs):
+            response, result = operation.call(other_self.endpoint, *args,
+                                              **kwargs)
+            # TODO: Handle the response and raise exceptions?
+            return response, result
+        if operation.can_paginate:
+            def _wrap_pagination(other_self, *args, **kwargs):
+                return operation.paginate(other_self.endpoint, *args,
+                                          **kwargs)
+            _wrapper.paginate = _wrap_pagination
+        _wrapper.__name__ = str(name)
+        # Eventually it would be nice to convert the docs into
+        # rst formatted docstrings.  This can probably be done
+        # lazily.
+        _wrapper.__doc__ = operation.documentation
+        return _wrapper
+
     def set_debug_logger(self, logger_name='botocore'):
         """
         Convenience function to quickly configure full debug output
@@ -613,6 +654,12 @@ class Session(object):
     def emit_first_non_none_response(self, event_name, **kwargs):
         responses = self._events.emit(event_name, **kwargs)
         return first_non_none_response(responses)
+
+
+class BaseClient(object):
+    def __init__(self, service, endpoint):
+        self.service = service
+        self.endpoint = endpoint
 
 
 def get_session(env_vars=None):
