@@ -11,15 +11,17 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
+import sys
 import logging
 import select
 import functools
+import socket
 import inspect
 
 import six
 from botocore.vendored.requests import models
 from botocore.vendored.requests.sessions import REDIRECT_STATI
-from botocore.compat import HTTPHeaders, file_type, HTTPResponse
+from botocore.compat import HTTPHeaders, HTTPResponse
 from botocore.exceptions import UnseekableStreamError
 from botocore.vendored.requests.packages.urllib3.connection import VerifiedHTTPSConnection
 from botocore.vendored.requests.packages.urllib3.connection import HTTPConnection
@@ -28,6 +30,8 @@ from botocore.vendored.requests.packages.urllib3.connectionpool import HTTPSConn
 
 
 logger = logging.getLogger(__name__)
+# maximal line length when calling readline().
+_MAXLINE = 65536
 
 
 class AWSHTTPResponse(HTTPResponse):
@@ -70,6 +74,44 @@ class AWSHTTPConnection(HTTPConnection):
         # body in _send_request, as opposed to endheaders(), which is where the
         # body is sent in all versions > 2.6.
         self._response_received = False
+
+    def _tunnel(self):
+        # Works around a bug in py26 which is fixed in later versions of
+        # python.
+        # As much as I don't like having if py2: <foo> code blocks, this seems
+        # the cleanest way to handle this workaround.  Fortunately, the
+        # difference from py26 to py33 is very minimal.  We're essentially
+        # just overriding the while loop.
+        if not sys.version_info[:2] == (2, 6):
+            return HTTPConnection._tunnel(self)
+
+        # Otherwise we workaround the issue.
+        self._set_hostport(self._tunnel_host, self._tunnel_port)
+        connect_str = "CONNECT %s:%d HTTP/1.0\r\n" % (self.host, self.port)
+        connect_bytes = connect_str.encode("ascii")
+        self.send(connect_bytes)
+        for header, value in self._tunnel_headers.items():
+            header_str = "%s: %s\r\n" % (header, value)
+            header_bytes = header_str.encode("latin-1")
+            self.send(header_bytes)
+        self.send(b'\r\n')
+
+        response = self.response_class(self.sock, method=self._method)
+        (version, code, message) = response._read_status()
+
+        if code != 200:
+            self.close()
+            raise socket.error("Tunnel connection failed: %d %s" % (code,
+                                                                    message.strip()))
+        while True:
+            line = response.fp.readline(_MAXLINE + 1)
+            # NOTE: This is the bug for py26.  The additional two if checks are
+            # not present, so it's possible to get into an infinite loop here.
+            if not line:
+                # for sites which EOF without sending a trailer
+                break
+            if line in (b'\r\n', b'\n', b''):
+                break
 
     def _send_request(self, method, url, body, headers):
         self._response_received = False
