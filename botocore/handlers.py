@@ -15,7 +15,7 @@
 
 This module contains builtin handlers for events emitted by botocore.
 """
-
+import socket
 import base64
 import hashlib
 import logging
@@ -37,6 +37,96 @@ RESTRICTED_REGIONS = [
     'fips-us-gov-west-1',
 ]
 
+
+
+def find_region_via_dns(bucket_name):
+    full_hostname = '%s.s3.amazonaws.com' % bucket_name
+    canonical_name = socket.getaddrinfo(
+        full_hostname, 443, 0, 0, 0, socket.AI_CANONNAME)[0][3]
+    return cname_to_region(canonical_name)
+
+
+def cname_to_region(canonical_name):
+    if canonical_name.count('.') == 3:
+        # s3-w.<region>.amazonaws.com
+        return canonical_name.rsplit('.', 3)[1]
+    else:
+        # s3-<region>-w.amazonaws.com, we want to grab the region.
+        first_chunk = canonical_name.rsplit('.', 2)[0]
+        region_name = re.search(
+            r'^s3-(.*)-w$', first_chunk.rsplit('.', 2)[0]).groups()[0]
+        if region_name in ['1', '2']:
+            return 'us-east-1'
+        elif region_name == '3':
+            return 'eu-west-1'
+        else:
+            return region_name
+
+
+def auto_switch_sigv4(endpoint, response, request, **kwargs):
+    """Automatically upgrade to sigv4 if necessary."""
+    if response is not None and _needs_sigv4(response[1]):
+        logger.debug("Error response from S3 indicates that "
+                     "signature version 4 is needed, automatically "
+                     "switching to signature version 4.")
+        # We need to first get the bucket
+        url = response[0].request.url
+        parsed = urlsplit(url)
+        hostname = parsed.netloc
+        if hostname.endswith('.s3.amazonaws.com'):
+            bucket = hostname.rsplit('.', 3)[0]
+            region_name = find_region_via_dns(bucket)
+            if region_name is None:
+                # If we couldn't figure out the region name, then there's
+                # nothing we can do.  We can at least let the user know
+                # they can fix all this by explicitly specifying a region.
+                logger.debug("Could not figure out the region name for "
+                             "bucket: %s, this issue can be fixed by "
+                             "explicitly configuring a region.", bucket)
+                return
+            # Now we need to switch to sigv4.
+            s3v4_cls = botocore.auth.AUTH_TYPE_MAPS['s3v4']
+            credentials = endpoint.auth.credentials
+            new_auth = s3v4_cls(credentials, 's3', region_name)
+            endpoint.auth = new_auth
+            endpoint.region_name = region_name
+            endpoint.host = urlunsplit((parsed.scheme,
+                                        's3.%s.amazonaws.com' % region_name,
+                                        '', '', ''))
+            # A return value of 0 indicates that the request
+            # should be immediately retried (sleep for 0 seconds).
+            return 0
+        else:
+            # A 307 temporary redirect has brought us to the correct
+            # location.
+            match = re.search('s3\.(.*)\.amazonaws.com', hostname)
+            if match is not None:
+                logger.debug("Temporary redirect seen, extracting region "
+                             "from the hostname: %s", hostname)
+                region_name = match.groups()[0]
+                bucket = hostname.rsplit('.', 4)[0]
+                # Now we need to switch to sigv4.
+                s3v4_cls = botocore.auth.AUTH_TYPE_MAPS['s3v4']
+                credentials = endpoint.auth.credentials
+                new_auth = s3v4_cls(credentials, 's3', region_name)
+                endpoint.auth = new_auth
+                endpoint.host = urlunsplit((parsed.scheme, hostname, '', '', ''))
+                # We don't want to use the virtual host style
+                # addressing, we should just use the path-style
+                # addressing here.
+                new_url = urlunsplit((parsed.scheme, hostname, parsed.path,
+                                      parsed.query, parsed.fragment))
+                request.original.url = new_url
+                request.original.headers['Host'] = hostname
+                endpoint.region_name = region_name
+                logger.debug("Retried request will be sent to: %s",
+                             endpoint.host)
+                return 0
+
+
+def _needs_sigv4(response):
+    return ('Please use AWS4-HMAC-SHA256' in
+            response.get('Error', {}).get('Message', ''))
 
 
 def check_for_200_error(response, **kwargs):
@@ -183,12 +273,16 @@ def fix_s3_host(event_name, endpoint, request, auth, **kwargs):
                 if auth.auth_path[-1] != '/':
                     auth.auth_path += '/'
             path_parts.remove(bucket_name)
+            new_path = '/'.join(path_parts)
+            if not new_path:
+                new_path = '/'
             global_endpoint = 's3.amazonaws.com'
             host = bucket_name + '.' + global_endpoint
-            new_tuple = (parts.scheme, host, '/'.join(path_parts),
-                         parts.query, '')
+            new_tuple = (parts.scheme, host, new_path, parts.query, '')
             new_uri = urlunsplit(new_tuple)
             request.url = new_uri
+            # Also update the endpoint's host attribute to be consistent
+            # with the new uri.
             logger.debug('URI updated to: %s', new_uri)
         else:
             logger.debug('Not changing URI, bucket is not DNS compatible: %s',
@@ -384,4 +478,5 @@ BUILTIN_HANDLERS = [
     ('before-parameter-build.ec2.RunInstances', base64_encode_user_data),
     ('before-parameter-build.autoscaling.CreateLaunchConfiguration',
      base64_encode_user_data),
+    ('needs-retry.s3', auto_switch_sigv4),
 ]

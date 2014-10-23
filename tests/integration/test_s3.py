@@ -28,6 +28,7 @@ import botocore.session
 import botocore.auth
 import botocore.credentials
 import botocore.vendored.requests as requests
+from botocore.client import ClientError
 
 
 class BaseS3Test(unittest.TestCase):
@@ -530,6 +531,36 @@ class TestCreateBucketInOtherRegion(BaseS3Test):
                                body=open(f.name, 'rb'))
             self.assertEqual(response[0].status_code, 200)
             self.keys.append('foo.txt')
+
+
+class TestCanCreateBucketsEUCentral1(unittest.TestCase):
+    def setUp(self):
+        self.session = botocore.session.get_session()
+        # Picking a region that's not eu-central-1 on purpose.
+        self.client = self.session.create_client('s3', 'us-west-2')
+        self.bucket_name = 'botocoretest%s-%s' % (
+            int(time.time()), random.randint(1, 1000))
+
+    def test_can_create_and_modify_bucket(self):
+        self.client.create_bucket(Bucket=self.bucket_name,
+                                  CreateBucketConfiguration={
+                                      'LocationConstraint': 'eu-central-1'
+                                  })
+        self.addCleanup(self.client.delete_bucket, Bucket=self.bucket_name)
+
+        location = self.client.get_bucket_location(Bucket=self.bucket_name)
+        self.assertEqual(location['LocationConstraint'], 'eu-central-1')
+        response = self.client.list_objects(Bucket=self.bucket_name)
+        self.assertNotIn('Contents', response)
+        self.assertEqual(response['Name'], self.bucket_name)
+
+        self.client.put_object(Bucket=self.bucket_name,
+                               Key='foo.txt', Body='hello world')
+        self.addCleanup(self.client.delete_object, Bucket=self.bucket_name,
+                        Key='foo.txt')
+        response = self.client.get_object(Bucket=self.bucket_name,
+                                          Key='foo.txt')
+        self.assertEqual(response['Body'].read(), b'hello world')
 
 
 if __name__ == '__main__':

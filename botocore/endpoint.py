@@ -71,7 +71,8 @@ class Endpoint(object):
         logger.debug("Making request for %s (verify_ssl=%s) with params: %s",
                      operation_model, self.verify, request_dict)
         prepared_request = self.create_request(request_dict)
-        return self._send_request(prepared_request, operation_model)
+        return self._send_request(prepared_request, operation_model,
+                                  request_dict)
 
     def _choose_signer(self, signer=None):
         # To decide if we need to do auth or not we check the
@@ -129,10 +130,11 @@ class Endpoint(object):
         prepared_request = request.prepare()
         return prepared_request
 
-    def _send_request(self, request, operation_model):
+    def _send_request(self, request, operation_model, request_dict):
         attempts = 1
         response, exception = self._get_response(request, operation_model, attempts)
-        while self._needs_retry(attempts, operation_model, response, exception):
+        while self._needs_retry(attempts, operation_model,
+                                request, response, exception):
             attempts += 1
             # If there is a stream associated with the request, we need
             # to reset it before attempting to send the request again.
@@ -141,6 +143,11 @@ class Endpoint(object):
             request.reset_stream()
             # Resign the request when retried.
             signer = self._choose_signer()
+            # requests will automatically add a Date header.  Because we
+            # add the x-amz-date header, we don't need both.  Adding both
+            # headers won't work when we try to sign the request.
+            if 'Date' in request.original.headers:
+                del request.original.headers['Date']
             request = self.prepare_request(request.original, signer)
             response, exception = self._get_response(request, operation_model,
                                                      attempts)
@@ -161,14 +168,14 @@ class Endpoint(object):
         return (botocore.response.get_response(operation_model,
                                                http_response), None)
 
-    def _needs_retry(self, attempts, operation_model, response=None,
+    def _needs_retry(self, attempts, operation_model, request, response=None,
                      caught_exception=None):
         event_name = 'needs-retry.%s.%s' % (self._endpoint_prefix,
                                             operation_model.name)
         responses = self._event_emitter.emit(
             event_name, response=response, endpoint=self,
             operation=operation_model, attempts=attempts,
-            caught_exception=caught_exception)
+            caught_exception=caught_exception, request=request)
         handler_response = first_non_none_response(responses)
         if handler_response is None:
             return False

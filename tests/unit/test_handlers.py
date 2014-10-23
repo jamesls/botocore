@@ -10,17 +10,15 @@
 # distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
 # ANY KIND, either express or implied. See the License for the specific
 # language governing permissions and limitations under the License.
-
 from tests import BaseSessionTest
 
 import base64
-import six
 import mock
 
-import botocore.session
-from botocore.hooks import first_non_none_response
 from botocore.compat import quote
 from botocore import handlers
+from botocore.endpoint import Endpoint
+from botocore import auth
 
 
 class TestHandlers(BaseSessionTest):
@@ -180,8 +178,8 @@ class TestRetryHandlerOrder(BaseSessionTest):
         operation = service.get_operation('CopyObject')
         responses = self.session.emit(
             'needs-retry.s3.CopyObject',
-            response=(mock.Mock(), mock.Mock()), endpoint=mock.Mock(), operation=operation,
-            attempts=1, caught_exception=None)
+            response=(mock.Mock(), {}), endpoint=mock.Mock(), operation=operation,
+            request=mock.Mock(), attempts=1, caught_exception=None)
         # This is implementation specific, but we're trying to verify that
         # the check_for_200_error is before any of the retry logic in
         # botocore.retryhandlers.
@@ -195,6 +193,94 @@ class TestRetryHandlerOrder(BaseSessionTest):
         self.assertTrue(s3_200_handler < general_retry_handler,
                         "S3 200 error handler was supposed to be before "
                         "the general retry handler, but it was not.")
+
+    def test_do_not_auto_switch_to_sigv4(self):
+        endpoint = mock.Mock(spec=Endpoint)
+        endpoint.auth = mock.sentinel.ORIGINAL_AUTH
+        # If we don't have an error message telling us to switch to sigv4
+        # we don't switch out the auth.
+        response = (None, {})
+        request = mock.Mock()
+        handlers.auto_switch_sigv4(endpoint, response, request)
+        self.assertEqual(endpoint.auth, mock.sentinel.ORIGINAL_AUTH)
+
+    def test_do_not_switch_if_response_is_none(self):
+        endpoint = mock.Mock(spec=Endpoint)
+        endpoint.auth = mock.sentinel.ORIGINAL_AUTH
+        request = mock.Mock()
+        handlers.auto_switch_sigv4(endpoint=endpoint, response=None,
+                                   request=request)
+        self.assertEqual(endpoint.auth, mock.sentinel.ORIGINAL_AUTH)
+
+    @mock.patch('botocore.handlers.find_region_via_dns')
+    def test_switch_to_sigv4_on_specific_error(self, find_region_via_dns):
+        find_region_via_dns.return_value = 'eu-central-1'
+        endpoint = mock.Mock(spec=Endpoint)
+        original_auth = mock.Mock()
+        endpoint.auth = original_auth
+        request = mock.Mock()
+        http_response = mock.Mock()
+        http_response.request.url = 'http://bucket.s3.amazonaws.com'
+        response = (http_response, {
+            'Error': {'Message': 'Please use AWS4-HMAC-SHA256'}})
+        handlers.auto_switch_sigv4(endpoint, response, request)
+        self.assertIsInstance(endpoint.auth, auth.S3SigV4Auth)
+
+    @mock.patch('botocore.handlers.find_region_via_dns')
+    def test_switch_to_siv4_for_307_redirect(self, find_region_via_dns):
+        find_region_via_dns.return_value = 'eu-central-1'
+        endpoint = mock.Mock(spec=Endpoint)
+        original_auth = mock.Mock()
+        endpoint.auth = original_auth
+        request = mock.Mock()
+        request.original.headers = {}
+        http_response = mock.Mock()
+        http_response.request.url = (
+            'https://bucket.s3.eu-central-1.amazonaws.com')
+        response = (http_response, {
+            'Error': {'Message': 'Please use AWS4-HMAC-SHA256'}})
+        handlers.auto_switch_sigv4(endpoint, response, request)
+        self.assertIsInstance(endpoint.auth, auth.S3SigV4Auth)
+        self.assertEqual(request.original.headers['Host'],
+                         'bucket.s3.eu-central-1.amazonaws.com')
+
+    def test_cname_to_region_with_region_dots(self):
+        self.assertEqual(
+            handlers.cname_to_region('s3-w.eu-central-1.amazonaws.com'),
+            'eu-central-1'
+        )
+
+    def test_cname_with_region_within_subdomain(self):
+        self.assertEqual(
+            handlers.cname_to_region('s3-us-west-2-w.amazonaws.com'),
+            'us-west-2'
+        )
+
+    def test_cname_for_us_east_1(self):
+        self.assertEqual(
+            handlers.cname_to_region('s3-1-w.amazonaws.com'),
+            'us-east-1'
+        )
+        self.assertEqual(
+            handlers.cname_to_region('s3-2-w.amazonaws.com'),
+            'us-east-1'
+        )
+
+    def test_cname_for_eu_west_1(self):
+        self.assertEqual(
+            handlers.cname_to_region('s3-3-w.amazonaws.com'),
+            'eu-west-1'
+        )
+
+    @mock.patch('socket.getaddrinfo')
+    def test_find_region_via_dns(self, getaddrinfo):
+        # This test is highly specific to the getaddrinfo socket
+        # call, so we're mostly just we handle the expected output properly.
+        getaddrinfo.return_value = [
+            [None, None, None, 's3-w.eu-central-1.amazonaws.com']]
+        self.assertEqual(
+            handlers.find_region_via_dns('mybucket'),
+            'eu-central-1')
 
 
 if __name__ == '__main__':

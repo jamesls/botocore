@@ -167,6 +167,7 @@ class AWSHTTPConnection(HTTPConnection):
                 fp.readline()
                 logger.debug("100 Continue response seen, now sending request body.")
                 self._send_message_body(message_body)
+                self.response_class = self._original_response_cls
             elif len(parts) == 3 and parts[0].startswith(b'HTTP/'):
                 # From the RFC:
                 # Requirements for HTTP/1.1 origin servers:
