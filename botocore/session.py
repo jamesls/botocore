@@ -494,6 +494,9 @@ class Session(object):
         service_description = self.get_service_data(service_name, api_version)
         return ServiceModel(service_description)
 
+    def get_waiter_model(self, service_name, api_version=None):
+        pass
+
     def get_service_data(self, service_name, api_version=None):
         """
         Retrieve the fully merged data associated with a service.
