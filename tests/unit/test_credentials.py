@@ -583,13 +583,28 @@ class TestCreateCredentialResolver(BaseEnvVar):
             'credentials_file': 'a',
             'legacy_config_file': 'b',
             'config_file': 'c',
-            'metadata_service_timeout': 'd',
-            'metadata_service_num_attempts': 'e',
+            'metadata_service_timeout': '10',
+            'metadata_service_num_attempts': '2',
             'profile': 'profilename',
         }
         fake_session.get_config_variable = lambda x: config[x]
         resolver = credentials.create_credential_resolver(fake_session)
         self.assertIsInstance(resolver, credentials.CredentialResolver)
+
+    def test_create_resolver_uses_integers(self):
+        fake_session = mock.Mock()
+        config = {
+            'credentials_file': 'a',
+            'legacy_config_file': 'b',
+            'config_file': 'c',
+            'metadata_service_timeout': '10',
+            'metadata_service_num_attempts': '2',
+            'profile': 'profilename',
+        }
+        fake_session.get_config_variable = lambda x: config[x]
+        with mock.patch('botocore.credentials.InstanceMetadataFetcher') as f:
+            resolver = credentials.create_credential_resolver(fake_session)
+        f.assert_called_with(timeout=10, num_attempts=2)
 
 
 if __name__ == "__main__":

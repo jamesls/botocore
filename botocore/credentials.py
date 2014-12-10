@@ -43,8 +43,10 @@ def create_credential_resolver(session):
     profile_name = session.get_config_variable('profile') or 'default'
     credential_file = session.get_config_variable('credentials_file')
     config_file = session.get_config_variable('config_file')
-    metadata_timeout = session.get_config_variable('metadata_service_timeout')
-    num_attempts = session.get_config_variable('metadata_service_num_attempts')
+    metadata_timeout = float(
+        session.get_config_variable('metadata_service_timeout'))
+    num_attempts = int(
+        session.get_config_variable('metadata_service_num_attempts'))
     providers = [
         EnvProvider(),
         SharedCredentialProvider(
