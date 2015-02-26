@@ -269,6 +269,7 @@ class ClientCreator(object):
             'response_parser': response_parser,
             'event_emitter': event_emitter,
             'request_signer': signer,
+            'service_model': service_model,
         }
 
     def _create_methods(self, service_model):
@@ -291,41 +292,8 @@ class ClientCreator(object):
     def _create_api_method(self, py_operation_name, operation_name,
                            service_model):
         def _api_call(self, **kwargs):
-            operation_model = service_model.operation_model(operation_name)
-            event_name = (
-                'before-parameter-build.{endpoint_prefix}.{operation_name}')
-            self.meta.events.emit(
-                event_name.format(
-                    endpoint_prefix=service_model.endpoint_prefix,
-                    operation_name=operation_name),
-                params=kwargs, model=operation_model)
-
-            request_dict = self._serializer.serialize_to_request(
-                kwargs, operation_model)
-
-            self.meta.events.emit(
-                'before-call.{endpoint_prefix}.{operation_name}'.format(
-                    endpoint_prefix=service_model.endpoint_prefix,
-                    operation_name=operation_name),
-                model=operation_model, params=request_dict,
-                request_signer=self._request_signer
-            )
-
-            http, parsed_response = self._endpoint.make_request(
-                operation_model, request_dict)
-
-            self.meta.events.emit(
-                'after-call.{endpoint_prefix}.{operation_name}'.format(
-                    endpoint_prefix=service_model.endpoint_prefix,
-                    operation_name=operation_name),
-                http_response=http, parsed=parsed_response,
-                model=operation_model
-            )
-
-            if http.status_code >= 300:
-                raise ClientError(parsed_response, operation_name)
-            else:
-                return parsed_response
+            # The "self" in this scope is referring to the BaseClient.
+            return self._make_api_call(operation_name, kwargs)
 
         _api_call.__name__ = str(py_operation_name)
         # TODO: docstrings.
@@ -335,19 +303,62 @@ class ClientCreator(object):
 class BaseClient(object):
 
     def __init__(self, serializer, endpoint, response_parser,
-                 event_emitter, request_signer):
+                 event_emitter, request_signer, service_model):
         self._serializer = serializer
         self._endpoint = endpoint
         self._response_parser = response_parser
         self._request_signer = request_signer
         self._cache = {}
-        self.meta = ClientMeta(event_emitter, endpoint.region_name)
+        self._service_model = service_model
+        self.meta = ClientMeta(event_emitter, endpoint.region_name,
+                               service_model)
 
         # Register request signing, but only if we have an event
         # emitter. When a client is cloned this is ignored, because
         # the client's ``meta`` will be copied anyway.
         if self.meta.events:
             self.meta.events.register('request-created', self._sign_request)
+
+    @property
+    def _service_model(self):
+        return self.meta.service_model
+
+    def _make_api_call(self, operation_name, api_params):
+        operation_model = self._service_model.operation_model(operation_name)
+        event_name = (
+            'before-parameter-build.{endpoint_prefix}.{operation_name}')
+        self.meta.events.emit(
+            event_name.format(
+                endpoint_prefix=self._service_model.endpoint_prefix,
+                operation_name=operation_name),
+            params=api_params, model=operation_model)
+
+        request_dict = self._serializer.serialize_to_request(
+            api_params, operation_model)
+
+        self.meta.events.emit(
+            'before-call.{endpoint_prefix}.{operation_name}'.format(
+                endpoint_prefix=self._service_model.endpoint_prefix,
+                operation_name=operation_name),
+            model=operation_model, params=request_dict,
+            request_signer=self._request_signer
+        )
+
+        http, parsed_response = self._endpoint.make_request(
+            operation_model, request_dict)
+
+        self.meta.events.emit(
+            'after-call.{endpoint_prefix}.{operation_name}'.format(
+                endpoint_prefix=self._service_model.endpoint_prefix,
+                operation_name=operation_name),
+            http_response=http, parsed=parsed_response,
+            model=operation_model
+        )
+
+        if http.status_code >= 300:
+            raise ClientError(parsed_response, operation_name)
+        else:
+            return parsed_response
 
     def _sign_request(self, operation_name=None, request=None, **kwargs):
         # Sign the request. This fires its own events and will
@@ -368,9 +379,14 @@ class ClientMeta(object):
 
     """
 
-    def __init__(self, events, region_name):
+    def __init__(self, events, region_name, service_model):
         self.events = events
         self._region_name = region_name
+        self._service_model = service_model
+
+    @property
+    def service_model(self):
+        return self._service_model
 
     @property
     def region_name(self):
