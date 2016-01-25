@@ -21,8 +21,9 @@ import logging
 import os
 import platform
 
-from botocore import __version__
 import botocore.configloader
+from botocore import __version__, UNSIGNED
+import botocore.config
 import botocore.credentials
 import botocore.client
 from botocore.exceptions import ConfigNotFound, ProfileNotFound

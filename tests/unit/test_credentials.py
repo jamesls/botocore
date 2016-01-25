@@ -14,12 +14,14 @@
 from datetime import datetime, timedelta
 import mock
 import os
+import base64
 
 from dateutil.tz import tzlocal, tzutc
 
 from botocore import credentials
 from botocore.utils import ContainerMetadataFetcher
 from botocore.credentials import EnvProvider, create_assume_role_refresher
+from botocore import saml
 import botocore.exceptions
 import botocore.session
 from tests import unittest, BaseEnvVar, IntegerRefresher

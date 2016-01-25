@@ -42,6 +42,7 @@ if six.PY3:
     from urllib.parse import urljoin
     from urllib.parse import parse_qsl
     from urllib.parse import parse_qs
+    from html import escape
     from http.client import HTTPResponse
     from io import IOBase as _IOBase
     from base64 import encodebytes
@@ -90,6 +91,7 @@ else:
     from urlparse import urljoin
     from urlparse import parse_qsl
     from urlparse import parse_qs
+    from cgi import escape
     from email.message import Message
     from email.Utils import formatdate
     file_type = file

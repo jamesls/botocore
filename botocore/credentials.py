@@ -18,11 +18,15 @@ import os
 import getpass
 import threading
 from collections import namedtuple
+import base64
+import xml.etree.ElementTree as ET
 
 from dateutil.parser import parse
 from dateutil.tz import tzlocal
 
 import botocore.configloader
+import botocore
+import botocore.config
 import botocore.compat
 from botocore.compat import total_seconds
 from botocore.exceptions import UnknownCredentialError
@@ -34,6 +38,9 @@ from botocore.exceptions import MetadataRetrievalError
 from botocore.exceptions import CredentialRetrievalError
 from botocore.utils import InstanceMetadataFetcher, parse_key_val_file
 from botocore.utils import ContainerMetadataFetcher
+from botocore.exceptions import RefreshUnsupportedError, SAMLError
+from botocore.client import Config
+from botocore import saml
 
 
 logger = logging.getLogger(__name__)
@@ -58,6 +65,12 @@ def create_credential_resolver(session):
     env_provider = EnvProvider()
     providers = [
         env_provider,
+        AssumeRoleWithSAMLProvider(
+            load_config=lambda: session.full_config,
+            client_creator=session.create_client,
+            cache={},
+            profile_name=profile_name,
+        ),
         AssumeRoleProvider(
             load_config=lambda: session.full_config,
             client_creator=session.create_client,
@@ -150,6 +163,32 @@ def create_mfa_serial_refresher():
         # when the temp creds expire.
         raise RefreshWithMFAUnsupportedError()
     return _refresher
+
+
+def credential_normalizer(credentials):
+    # We need to normalize the credential names returned from assume_role()
+    # or assume_role_with_saml(), to the values expected by the refresh creds.
+    return {
+        'access_key': credentials['AccessKeyId'],
+        'secret_key': credentials['SecretAccessKey'],
+        'token': credentials['SessionToken'],
+        'expiry_time': _serialize_if_needed(credentials['Expiration']),
+    }
+
+
+def create_exception_raiser(exception):
+    def raisefunc():
+        raise exception()
+    return raisefunc
+
+
+def _role_selector(role_arn, roles):
+    """Select a role based on pre-configured role_arn and IdP roles list.
+
+    Given a roles list in the form of [{"RoleArn": "...", ...}, ...],
+    return the item which matches the role_arn, or None otherwise"""
+    chosen = [r for r in roles if r['RoleArn'] == role_arn]
+    return chosen[0] if chosen else None
 
 
 class Credentials(object):
@@ -357,7 +396,7 @@ class RefreshableCredentials(Credentials):
         # the self._refresh_lock.
         try:
             metadata = self._refresh_using()
-        except Exception as e:
+        except Exception:
             period_name = 'mandatory' if is_mandatory else 'advisory'
             logger.warning("Refreshing temporary credentials failed "
                            "during %s refresh period.",
@@ -631,7 +670,8 @@ class OriginalEC2Provider(CredentialProvider):
         Search for a credential file used by original EC2 CLI tools.
         """
         if 'AWS_CREDENTIAL_FILE' in self._environ:
-            full_path = os.path.expanduser(self._environ['AWS_CREDENTIAL_FILE'])
+            full_path = os.path.expanduser(
+                self._environ['AWS_CREDENTIAL_FILE'])
             creds = self._parser(full_path)
             if self.ACCESS_KEY in creds:
                 logger.info('Found credentials in AWS_CREDENTIAL_FILE.')
@@ -782,7 +822,7 @@ class BotoProvider(CredentialProvider):
 class AssumeRoleProvider(CredentialProvider):
 
     METHOD = 'assume-role'
-    ROLE_CONFIG_VAR = 'role_arn'
+    DISTINCTION_VAR = 'role_arn'
     # Credentials are considered expired (and will be refreshed) once the total
     # remaining time left until the credentials expires is less than the
     # EXPIRY_WINDOW.
@@ -843,7 +883,7 @@ class AssumeRoleProvider(CredentialProvider):
 
     def _has_assume_role_config_vars(self):
         profiles = self._loaded_config.get('profiles', {})
-        return self.ROLE_CONFIG_VAR in profiles.get(self._profile_name, {})
+        return self.DISTINCTION_VAR in profiles.get(self._profile_name, {})
 
     def _load_creds_via_assume_role(self):
         # We can get creds in one of two ways:
@@ -1053,6 +1093,122 @@ class ContainerProvider(CredentialProvider):
 
     def _provided_relative_uri(self):
         return self.ENV_VAR in self._environ
+
+
+class AssumeRoleWithSAMLProvider(AssumeRoleProvider):
+    METHOD = 'assume-role-with-saml'
+    DISTINCTION_VAR = 'saml_endpoint'
+
+    def __init__(self, load_config, client_creator, cache, profile_name,
+                 role_selector=_role_selector,
+                 password_prompter=getpass.getpass,
+                 authenticators=None):
+        """To initiate an AssumeRoleWithSAMLProvider.
+
+        :type role_selector: callable
+        :param role_selector: A function to choose a role based on both
+            user configuration and the roles allowed by IdP.
+
+        :type password_prompter: callable
+        :param password_prompter: A callable that receives a prompt for user,
+            and then returns a password provided by the user, such as getpass()
+
+        :type username_prompter: callable
+        :param username_prompter: A callable that receives a prompt for user,
+            and then returns the username provided by the user, such as input()
+
+        :type authenticators: list
+        :param authenticators: A list of authenticators, which are instances
+            with an is_suitable() method and an authenticate() method.
+            You can use it to add your own implementation for 3rd party IdP.
+
+        """
+        super(AssumeRoleWithSAMLProvider, self).__init__(
+            load_config, client_creator, cache, profile_name)
+        self.password_prompter = password_prompter
+        self.role_selector = role_selector
+        if authenticators is not None:
+            self.authenticators = authenticators
+        else:
+            self.authenticators = [
+                saml.ADFSFormsBasedAuthenticator(self.password_prompter),
+                saml.GenericFormsBasedAuthenticator(password_prompter)]
+
+    def _create_cache_key(self):
+        role_arn = self._get_role_config_values().get('role_arn')
+        cache_key = "%s--%s" % (self._profile_name, role_arn)
+        return cache_key.replace(':', '_').replace('/', '-')
+
+    def _get_role_config_values(self):
+        return self._loaded_config.get('profiles', {}).get(
+            self._profile_name, {})
+
+    def _create_creds_from_response(self, response):
+        config = self._get_role_config_values()
+        if config.get('saml_authentication_type') in ['form']:
+            # If some parameter(s) would require prompting the user for input,
+            # we use a different refresh_func.
+            # We can explore an option in the future to support reprompting for
+            # input, but for now we just error out when the temp creds expire.
+            refresh_func = create_exception_raiser(RefreshUnsupportedError)
+        return RefreshableCredentials(
+            access_key=response['Credentials']['AccessKeyId'],
+            secret_key=response['Credentials']['SecretAccessKey'],
+            token=response['Credentials']['SessionToken'],
+            method=self.METHOD,
+            expiry_time=_parse_if_needed(
+                response['Credentials']['Expiration']),
+            refresh_using=refresh_func)
+
+    def _create_client(self):
+        return self._client_creator(
+            'sts', config=Config(signature_version=botocore.UNSIGNED))
+
+    def _retrieve_temp_credentials(self):
+        logger.debug("Retrieving credentials via AssumeRoleWithSaml.")
+        response = self._create_client().assume_role_with_saml(
+            **self._assume_role_base_kwargs(self._get_role_config_values()))
+        creds = self._create_creds_from_response(response)
+        return creds, response
+
+    def _assume_role_base_kwargs(self, config):
+        assertion = None
+        for authenticator in self.authenticators:
+            if authenticator.is_suitable(config):
+                assertion = authenticator.retrieve_saml_assertion(
+                    config=config)
+                break
+        else:
+            raise ValueError("Unsupported saml_authentication_type: %s"
+                             % config.get('saml_authentication_type'))
+        if not assertion:
+            raise SAMLError(
+                detail='Failed to login at %s' % config['saml_endpoint'])
+        idp_roles = self._parse_roles(assertion)
+        role = self.role_selector(config.get('role_arn'), idp_roles)
+        if not role:
+            raise SAMLError(detail='Unable to choose role "%s" from %s' % (
+                config.get('role_arn'), [r['RoleArn'] for r in idp_roles]))
+        role['SAMLAssertion'] = assertion
+        return role
+
+    def _parse_roles(self, assertion):
+        attribute = '{urn:oasis:names:tc:SAML:2.0:assertion}Attribute'
+        attr_value = '{urn:oasis:names:tc:SAML:2.0:assertion}AttributeValue'
+        awsroles = []
+        root = ET.fromstring(base64.b64decode(assertion))
+        for attr in root.getiterator(attribute):
+            if attr.get('Name') == \
+                    'https://aws.amazon.com/SAML/Attributes/Role':
+                for value in attr.getiterator(attr_value):
+                    parts = value.text.split(',')
+                    # Deals with "role_arn,pricipal_arn" or its reversed order
+                    if 'saml-provider' in parts[0]:
+                        role = {'PrincipalArn': parts[0], 'RoleArn': parts[1]}
+                    else:
+                        role = {'PrincipalArn': parts[1], 'RoleArn': parts[0]}
+                    awsroles.append(role)
+        return awsroles
 
 
 class CredentialResolver(object):
