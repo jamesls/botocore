@@ -168,6 +168,14 @@ class Endpoint(object):
             request, operation_model, attempts)
         while self._needs_retry(attempts, operation_model, request_dict,
                                 success_response, exception):
+            event_name = (
+                'retrying-request.%s.%s' %
+                (self._endpoint_prefix, operation_model.name))
+            request_dict['context']['retry_count'] = attempts
+            self._event_emitter.emit(
+                event_name, context=request_dict['context'],
+                model=operation_model, response=success_response,
+                exception=exception)
             attempts += 1
             # If there is a stream associated with the request, we need
             # to reset it before attempting to send the request again.
