@@ -60,11 +60,12 @@ class InsightEventHandler(object):
             status = 'success'
         message = self._response_received_message(
             service_name, operation_name, request_id, status, error_code, status_code,
-            max_retries)
+            max_retries, context['request_total_seconds'])
         self.loop.call_soon_threadsafe(self.queue.put_nowait, message)
 
-    def _response_received_message(self, service_name, operation_name, request_id,
-                                   status, error_code, status_code, max_retries):
+    def _response_received_message(self, service_name, operation_name,
+                                   request_id, status, error_code, status_code,
+                                   max_retries, total_seconds):
         return json.dumps({
             'type': 'ResponseReceived',
             'service': service_name,
@@ -75,6 +76,7 @@ class InsightEventHandler(object):
             'errorCode': error_code,
             'statusCode': status_code,
             'maxRetries': max_retries,
+            'totalSeconds': total_seconds,
         })
 
     def _request_send_message(self, service_name, operation_name, request_id,

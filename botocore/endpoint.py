@@ -164,8 +164,14 @@ class Endpoint(object):
     def _send_request(self, request_dict, operation_model):
         attempts = 1
         request = self.create_request(request_dict, operation_model)
+        request_dict['context']['request_start_time'] = time.time()
         success_response, exception = self._get_response(
             request, operation_model, attempts)
+        request_dict['context']['request_end_time'] = time.time()
+        request_dict['context']['request_total_seconds'] = (
+            request_dict['context']['request_end_time'] -
+            request_dict['context']['request_start_time']
+        )
         while self._needs_retry(attempts, operation_model, request_dict,
                                 success_response, exception):
             event_name = (
