@@ -18,6 +18,7 @@ def register_session(session):
     send_thread = MessageSender()
     send_thread.start()
     session.register('before-parameter-build', send_thread.on_parameter_build)
+    session.register('request-created', send_thread.on_request_created)
     session.register('after-call', send_thread.on_response_received)
     session.register('retrying-request', send_thread.on_retry_request)
 
@@ -27,10 +28,10 @@ class InsightEventHandler(object):
         self.queue = queue
         self.loop = loop
 
-    def on_parameter_build(self, model, context, **kwargs):
+    def on_request_created(self, model, request_dict, **kwargs):
         service_name = model.service_model.service_name
         operation_name = model.name
-        context['request_id'] = str(uuid4())
+        context = request_dict['context']
         retry_count = context.get('retry_count')
         # Is retry_delay worth plumbing into botocore?  Not currently exposed.
         retry_delay = 0
@@ -39,6 +40,15 @@ class InsightEventHandler(object):
             retry_count, retry_delay)
         LOG.debug("Queueing message from bcore event handler for insight.")
         self.loop.call_soon_threadsafe(self.queue.put_nowait, message)
+
+    def on_parameter_build(self, context, **kwargs):
+        # before-parameter-build happens once per client method call.
+        # Keep in mind one client method call, e.g. s3.list_objects()
+        # can result in multiple HTTP requests.  However, all of those
+        # HTTP requests should be tracked under a single request_id.
+        # This request_id creation is hooked up to before-parameter-build
+        # because that maps to a client method call (vs. HTTP requests).
+        context['request_id'] = str(uuid4())
 
     def on_retry_request(self, model, context, response, exception, **kwargs):
         # This is emitted from endpoint.py whenver we decide we need to retry
@@ -133,6 +143,9 @@ class MessageSender(threading.Thread):
 
     def on_retry_request(self, **kwargs):
         self.event_handler.on_retry_request(**kwargs)
+
+    def on_request_created(self, **kwargs):
+        self.event_handler.on_request_created(**kwargs)
 
     def run(self):
         self.loop = asyncio.new_event_loop()

@@ -147,6 +147,8 @@ class Endpoint(object):
                 endpoint_prefix=self._endpoint_prefix,
                 op_name=operation_model.name)
             self._event_emitter.emit(event_name, request=request,
+                                     model=operation_model,
+                                     request_dict=params,
                                      operation_name=operation_model.name)
         prepared_request = self.prepare_request(request)
         return prepared_request

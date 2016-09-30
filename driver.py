@@ -5,13 +5,16 @@ Will send data to dynamodb at a constant rate.
 """
 import sys
 import time
+import os
 import argparse
 
 import botocore.session
 from botocore import insight
 
 
+#os.environ['AWS_DEFAULT_REGION'] = 'ap-south-1'
 TABLE_NAME = 'InsightDemo'
+#TABLE_NAME = 'InsightDemoAPSouth1'
 
 
 def seed_data(ddb):
