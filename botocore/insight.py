@@ -19,6 +19,7 @@ def register_session(session):
     send_thread.start()
     session.register('before-parameter-build', send_thread.on_parameter_build)
     session.register('after-call', send_thread.on_response_received)
+    session.register('retrying-request', send_thread.on_retry_request)
 
 
 class InsightEventHandler(object):
@@ -30,9 +31,8 @@ class InsightEventHandler(object):
         service_name = model.service_model.service_name
         operation_name = model.name
         context['request_id'] = str(uuid4())
-        # TODO: I need to plumb these into botocore, I don't think I can
-        # get this on before-parameter-build.
-        retry_count = 0
+        retry_count = context.get('retry_count')
+        # Is retry_delay worth plumbing into botocore?  Not currently exposed.
         retry_delay = 0
         message = self._request_send_message(
             service_name, operation_name, context['request_id'],
@@ -40,16 +40,32 @@ class InsightEventHandler(object):
         LOG.debug("Queueing message from bcore event handler for insight.")
         self.loop.call_soon_threadsafe(self.queue.put_nowait, message)
 
-    def on_failed_request(self, model, context, response, exception, **kwargs):
+    def on_retry_request(self, model, context, response, exception, **kwargs):
+        # This is emitted from endpoint.py whenver we decide we need to retry
+        # the request (I added this event to support this).
         service_name = model.service_model.service_name
         operation_name = model.name
-        context['request_id']
-        self._response_received_message(
+        request_id = context['request_id']
+        status_code = None
+        error_code = None
+        max_retries = False
+        if exception is None:
+            # Then response is a tuple of http_response, parsed
+            http_response, parsed = response
+            status_code = http_response.status_code
+            if 'Error' in parsed:
+                error_code = parsed['Error'].get('Code')
+        context['retry_count']
+        message = self._response_received_message(
             service_name, operation_name, request_id,
-            status='failure', error_code='',
-            status_code=status_code, max_retries=False)
+            'failure', error_code, status_code, max_retries,
+            context['request_total_seconds']
+        )
+        self.loop.call_soon_threadsafe(self.queue.put_nowait, message)
 
     def on_response_received(self, model, http_response, parsed, context, **kwargs):
+        # This is hooked up to after-call, which is emitted from the client,
+        # this gives us a final yes/no success case.
         service_name = model.service_model.service_name
         operation_name = model.name
         request_id = context['request_id']
@@ -58,9 +74,18 @@ class InsightEventHandler(object):
             error_code = None
             max_retries = False
             status = 'success'
-        message = self._response_received_message(
-            service_name, operation_name, request_id, status, error_code, status_code,
-            max_retries, context['request_total_seconds'])
+            message = self._response_received_message(
+                service_name, operation_name, request_id, status, error_code, status_code,
+                max_retries, context['request_total_seconds'])
+        else:
+            # Error response.
+            error_code = parsed.get('Error', {}).get('Code')
+            max_retries = parsed.get('ResponseMetadata', {}).get(
+                'MaxAttemptsReached', False)
+            message = self._response_received_message(
+                service_name, operation_name, request_id, 'failure',
+                error_code, status_code, max_retries, context['request_total_seconds']
+            )
         self.loop.call_soon_threadsafe(self.queue.put_nowait, message)
 
     def _response_received_message(self, service_name, operation_name,
@@ -105,6 +130,9 @@ class MessageSender(threading.Thread):
 
     def on_response_received(self, **kwargs):
         self.event_handler.on_response_received(**kwargs)
+
+    def on_retry_request(self, **kwargs):
+        self.event_handler.on_retry_request(**kwargs)
 
     def run(self):
         self.loop = asyncio.new_event_loop()

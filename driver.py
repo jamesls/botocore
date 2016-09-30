@@ -15,7 +15,7 @@ TABLE_NAME = 'InsightDemo'
 
 
 def seed_data(ddb):
-    for i in range(1000):
+    for i in range(2000):
         ddb.put_item(TableName=TABLE_NAME,
                      Item={'Counter': {'S': str(i)}})
 
@@ -26,7 +26,7 @@ def get_data(ddb, s3, rate=1):
     while True:
         #ddb.get_item(TableName=TABLE_NAME, Key={'Counter': {'S': '1'}})
         ddb.scan(TableName=TABLE_NAME)
-        s3.list_objects(Bucket='jamesls-test-sync')
+        #s3.list_objects(Bucket='jamesls-test-sync')
         #sys.stdout.write('.')
         #sys.stdout.flush()
         #time.sleep(sleep_time)
