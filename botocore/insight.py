@@ -4,15 +4,19 @@
 import asyncio
 import threading
 from uuid import uuid4
-import websockets
+import logging
 import json
 
+import websockets
+
+
+LOG = logging.getLogger(__name__)
 
 
 def register_session(session):
+    LOG.debug("Starting up insight message sender thread.")
     send_thread = MessageSender()
     send_thread.start()
-    import time; time.sleep(1)
     session.register('before-parameter-build', send_thread.on_parameter_build)
 
 
@@ -32,12 +36,13 @@ class InsightEventHandler(object):
         message = self._request_send_message(
             service_name, operation_name, context['request_id'],
             retry_count, retry_delay)
-        print("Queueing message from bcore event handler")
+        LOG.debug("Queueing message from bcore event handler for insight.")
         self.loop.call_soon_threadsafe(self.queue.put_nowait, message)
 
     def _request_send_message(self, service_name, operation_name, request_id,
                               retry_count, retry_delay):
         return json.dumps({
+            'type': 'RequestSent',
             'service': service_name,
             'operation': operation_name,
             'sdk': 'python',
@@ -66,12 +71,15 @@ class MessageSender(threading.Thread):
         self.loop.run_until_complete(self._handler())
 
     async def _handler(self):
-        async with websockets.connect('ws://localhost:5678', loop=self.loop) as websocket:
+        async with websockets.connect('ws://localhost:5678/publish',
+                                      loop=self.loop) as websocket:
             while True:
                 try:
                     message = await self.queue.get()
                 except Exception as e:
                     print("Received exception: %s" % e)
-                print("MessageSender thread successfully awaited message: %s" %
-                      message)
+                LOG.debug("MessageSender thread successfully awaited "
+                          "message: %s", message)
                 await websocket.send(message)
+                LOG.debug("MessageSender thread successfully send message to "
+                          "socket channel.")

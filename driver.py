@@ -30,10 +30,16 @@ def get_data(ddb, rate=1):
         time.sleep(sleep_time)
 
 
+def one_shot(ddb):
+    ddb.get_item(TableName=TABLE_NAME, Key={'Counter': {'S': '1'}})
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument('--seed', action='store_true',
                         help='Seed ddb table with initial data.')
+    parser.add_argument('--one-shot', action='store_true',
+                        help='Make a single GetItem request.')
     args = parser.parse_args()
     s = botocore.session.get_session()
     insight.register_session(s)
@@ -42,6 +48,8 @@ def main():
         print("Seeding table with data.")
         seed_data(ddb)
         print("Done seeding table.")
+    elif args.one_shot:
+        one_shot(ddb)
     else:
         get_data(ddb)
 
