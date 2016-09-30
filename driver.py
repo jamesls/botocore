@@ -15,19 +15,21 @@ TABLE_NAME = 'InsightDemo'
 
 
 def seed_data(ddb):
-    for i in range(100):
+    for i in range(1000):
         ddb.put_item(TableName=TABLE_NAME,
                      Item={'Counter': {'S': str(i)}})
 
 
-def get_data(ddb, rate=1):
+def get_data(ddb, s3, rate=1):
     # Send get_item requests at a rate of `rate` items per second.
     sleep_time = 1 / float(rate)
     while True:
-        ddb.get_item(TableName=TABLE_NAME, Key={'Counter': {'S': '1'}})
+        #ddb.get_item(TableName=TABLE_NAME, Key={'Counter': {'S': '1'}})
+        ddb.scan(TableName=TABLE_NAME)
+        s3.list_objects(Bucket='jamesls-test-sync')
         #sys.stdout.write('.')
         #sys.stdout.flush()
-        time.sleep(sleep_time)
+        #time.sleep(sleep_time)
 
 
 def one_shot(ddb):
@@ -44,6 +46,7 @@ def main():
     s = botocore.session.get_session()
     insight.register_session(s)
     ddb = s.create_client('dynamodb')
+    s3 = s.create_client('s3')
     if args.seed:
         print("Seeding table with data.")
         seed_data(ddb)
@@ -51,7 +54,7 @@ def main():
     elif args.one_shot:
         one_shot(ddb)
     else:
-        get_data(ddb)
+        get_data(ddb, s3)
 
 
 if __name__ == '__main__':
