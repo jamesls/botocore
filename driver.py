@@ -28,7 +28,11 @@ def get_data(ddb, s3, rate=1):
     sleep_time = 1 / float(rate)
     while True:
         #ddb.get_item(TableName=TABLE_NAME, Key={'Counter': {'S': '1'}})
-        ddb.scan(TableName=TABLE_NAME)
+        try:
+            ddb.scan(TableName=TABLE_NAME)
+        except Exception:
+            print("FAIL")
+            pass
         #s3.list_objects(Bucket='jamesls-test-sync')
         #sys.stdout.write('.')
         #sys.stdout.flush()
