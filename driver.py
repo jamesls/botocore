@@ -33,10 +33,7 @@ def get_data(ddb, s3, rate=1):
         except Exception:
             print("FAIL")
             pass
-        #s3.list_objects(Bucket='jamesls-test-sync')
-        #sys.stdout.write('.')
-        #sys.stdout.flush()
-        #time.sleep(sleep_time)
+        time.sleep(sleep_time)
 
 
 def one_shot(ddb):
@@ -49,6 +46,8 @@ def main():
                         help='Seed ddb table with initial data.')
     parser.add_argument('--one-shot', action='store_true',
                         help='Make a single GetItem request.')
+    parser.add_argument('--rate', type=float, default=1.0,
+                        help='Number of requests a second')
     args = parser.parse_args()
     s = botocore.session.get_session()
     insight.register_session(s)
@@ -61,7 +60,7 @@ def main():
     elif args.one_shot:
         one_shot(ddb)
     else:
-        get_data(ddb, s3)
+        get_data(ddb, s3, args.rate)
 
 
 if __name__ == '__main__':
