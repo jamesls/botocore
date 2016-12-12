@@ -1,5 +1,5 @@
 from botocore.exceptions import SAMLError
-from six.moves.html_parser import HTMLParser
+from botocore.compat import six
 from botocore.compat import escape
 from botocore.compat import urljoin
 import xml.etree.ElementTree as ET
@@ -14,11 +14,11 @@ class SAMLAuthenticator(object):
         :param config: It is the profile dictionary loaded from user's profile,
             i.e. {'saml_endpoint': 'https://...', 'saml_provider': '...', ...}
         """
-        raise NotImplemented("is_suitable")
+        raise NotImplementedError("is_suitable")
 
     def retrieve_saml_assertion(self, config):
         """Returns SAML assertion when login succeeds, or None otherwise."""
-        raise NotImplemented("authenticate")
+        raise NotImplementedError("authenticate")
 
 
 class GenericFormsBasedAuthenticator(SAMLAuthenticator):
@@ -112,7 +112,8 @@ class GenericFormsBasedAuthenticator(SAMLAuthenticator):
         login_form_html_node = self._parse_form_from_html(response.text)
         if login_form_html_node is None:
             raise SAMLError(detail=self._ERROR_NO_FORM % endpoint)
-        form_action = urljoin(endpoint, login_form_html_node.attrib.get('action', ''))
+        form_action = urljoin(endpoint,
+                              login_form_html_node.attrib.get('action', ''))
         if not form_action.lower().startswith('https://'):
             raise SAMLError(detail='Your SAML IdP must use HTTPS connection')
         payload = dict((tag.attrib['name'], tag.attrib.get('value', ''))
@@ -140,14 +141,16 @@ class GenericFormsBasedAuthenticator(SAMLAuthenticator):
         if self.USERNAME_FIELD in form_data:
             form_data[self.USERNAME_FIELD] = username
         if self.PASSWORD_FIELD in form_data:
-            form_data[self.PASSWORD_FIELD] = self._password_prompter("Password: ")
+            form_data[self.PASSWORD_FIELD] = self._password_prompter(
+                "Password: ")
 
     def _send_form_post(self, login_url, form_data):
         response = self._requests_session.post(
             login_url, data=form_data, verify=True
         )
         if response.status_code != 200:
-            raise SAMLError(detail=self._ERROR_LOGIN_FAILED_NON_200 % response.status_code)
+            raise SAMLError(detail=self._ERROR_LOGIN_FAILED_NON_200 %
+                            response.status_code)
         return response.text
 
     def _extract_saml_assertion_from_response(self, response_body):
@@ -179,9 +182,9 @@ class ADFSFormsBasedAuthenticator(GenericFormsBasedAuthenticator):
                 config.get('saml_provider') == 'adfs')
 
 
-class FormParser(HTMLParser):
+class FormParser(six.moves.html_parser.HTMLParser):
     def __init__(self):
-        HTMLParser.__init__(self)
+        six.moves.html_parser.HTMLParser.__init__(self)
         self.forms = []
         self._current_form = None
 
