@@ -1,3 +1,17 @@
+# Copyright 2016 Amazon.com, Inc. or its affiliates. All Rights Reserved.
+#
+# Licensed under the Apache License, Version 2.0 (the "License"). You
+# may not use this file except in compliance with the License. A copy of
+# the License is located at
+#
+# http://aws.amazon.com/apache2.0/
+#
+# or in the "license" file accompanying this file. This file is
+# distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF
+# ANY KIND, either express or implied. See the License for the specific
+# language governing permissions and limitations under the License.
+import xml.etree.ElementTree as ET
+
 from botocore.exceptions import SAMLError
 from botocore.compat import six
 from botocore.compat import escape
@@ -5,8 +19,6 @@ from botocore.compat import urlsplit
 from botocore.compat import urljoin
 from botocore.compat import json
 from botocore.vendored import requests
-import xml.etree.ElementTree as ET
-import botocore.vendored.requests as requests
 
 
 class SAMLAuthenticator(object):
@@ -177,6 +189,8 @@ class GenericFormsBasedAuthenticator(SAMLAuthenticator):
 
 
 class OktaAuthenticator(GenericFormsBasedAuthenticator):
+    _AUTH_URL = '/api/v1/authn'
+
     def retrieve_saml_assertion(self, config):
         self._validate_config_values(config)
         endpoint = config['saml_endpoint']
@@ -184,17 +198,18 @@ class OktaAuthenticator(GenericFormsBasedAuthenticator):
         auth_url = 'https://%s/api/v1/authn' % hostname
         username = config['saml_username']
         password = self._password_prompter("Password: ")
-        response = requests.post(
+        response = self._requests_session.post(
             auth_url,
             headers={'Content-Type': 'application/json',
                      'Accept': 'application/json'},
-                     data=json.dumps({'username': username,
-                                      'password': password}))
-        parsed = json.loads(response.content)
+            data=json.dumps({'username': username,
+                             'password': password})
+        )
+        parsed = json.loads(response.text)
         session_token = parsed['sessionToken']
         saml_url = endpoint + '?sessionToken=%s' % session_token
-        response = requests.get(saml_url)
-        r = self._extract_saml_assertion_from_response(response.content)
+        response = self._requests_session.get(saml_url)
+        r = self._extract_saml_assertion_from_response(response.text)
         return r
 
     def is_suitable(self, config):
