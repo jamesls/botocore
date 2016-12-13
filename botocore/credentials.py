@@ -1132,7 +1132,7 @@ class AssumeRoleWithSAMLProvider(AssumeRoleProvider):
         else:
             self.authenticators = [
                 saml.ADFSFormsBasedAuthenticator(self.password_prompter),
-                saml.GenericFormsBasedAuthenticator(password_prompter)]
+                saml.OktaAuthenticator(self.password_prompter)]
 
     def _create_cache_key(self):
         role_arn = self._get_role_config_values().get('role_arn')

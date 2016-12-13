@@ -1,7 +1,10 @@
 from botocore.exceptions import SAMLError
 from botocore.compat import six
 from botocore.compat import escape
+from botocore.compat import urlsplit
 from botocore.compat import urljoin
+from botocore.compat import json
+from botocore.vendored import requests
 import xml.etree.ElementTree as ET
 import botocore.vendored.requests as requests
 
@@ -171,6 +174,32 @@ class GenericFormsBasedAuthenticator(SAMLAuthenticator):
         for element in root.findall(tag):
             if element.attrib.get(attr) == trait:
                 return element.attrib.get('value')
+
+
+class OktaAuthenticator(GenericFormsBasedAuthenticator):
+    def retrieve_saml_assertion(self, config):
+        self._validate_config_values(config)
+        endpoint = config['saml_endpoint']
+        hostname = urlsplit(endpoint).netloc
+        auth_url = 'https://%s/api/v1/authn' % hostname
+        username = config['saml_username']
+        password = self._password_prompter("Password: ")
+        response = requests.post(
+            auth_url,
+            headers={'Content-Type': 'application/json',
+                     'Accept': 'application/json'},
+                     data=json.dumps({'username': username,
+                                      'password': password}))
+        parsed = json.loads(response.content)
+        session_token = parsed['sessionToken']
+        saml_url = endpoint + '?sessionToken=%s' % session_token
+        response = requests.get(saml_url)
+        r = self._extract_saml_assertion_from_response(response.content)
+        return r
+
+    def is_suitable(self, config):
+        return (config.get('saml_authentication_type') == 'form' and
+                config.get('saml_provider') == 'okta')
 
 
 class ADFSFormsBasedAuthenticator(GenericFormsBasedAuthenticator):
