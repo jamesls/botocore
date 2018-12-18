@@ -109,7 +109,7 @@ def _validate_output_keys_match(operation_name, page_config, service_model):
     # this is no longer a realistic thing to check.  Someone would have to
     # backport the missing keys to all the paginators.
     output_shape = service_model.operation_model(operation_name).output_shape
-    output_members = output_shape.members
+    output_members = set(output_shape.members)
     for key_name, output_key in _get_all_page_output_keys(page_config):
         if _looks_like_jmespath(output_key):
             _validate_jmespath_compiles(output_key)
@@ -118,6 +118,13 @@ def _validate_output_keys_match(operation_name, page_config, service_model):
                 raise AssertionError("Pagination key '%s' refers to an output "
                                      "member that does not exist: %s" % (
                                          key_name, output_key))
+            output_members.remove(output_key)
+    if output_members:
+        raise AssertionError("There are member names in the output shape of "
+                             "%s that are not accounted for in the pagination "
+                             "config for service %s: %s" % (
+                                 operation_name, service_model.service_name,
+                                 ', '.join(output_members)))
 
 
 def _looks_like_jmespath(expression):
