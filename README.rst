@@ -13,21 +13,9 @@ botocore package is the foundation for the
 `AWS CLI <https://github.com/aws/aws-cli>`__ as well as
 `boto3 <https://github.com/boto/boto3>`__.
 
+WARNING
+=======
 
-Documentation
--------------
-Documentation for ``botocore`` can be found  `here <https://botocore.amazonaws.com/v1/documentation/api/latest/index.html>`__.
-
-
-Getting Help
-------------
-
-We use GitHub issues for tracking bugs and feature requests and have limited
-bandwidth to address them. Please use these community resources for getting
-help. Please note many of the same resources available for ``boto3`` are
-applicable for ``botocore``:
-
-* Ask a question on `Stack Overflow <https://stackoverflow.com/>`__ and tag it with `boto3 <https://stackoverflow.com/questions/tagged/boto3>`__
-* Come join the AWS Python community chat on `gitter <https://gitter.im/boto/boto3>`__
-* Open a support ticket with `AWS Support <https://console.aws.amazon.com/support/home#/>`__
-* If it turns out that you may have found a bug, please `open an issue <https://github.com/boto/botocore/issues/new>`__
+This is a special branch of botocore not meant for general purpose usage.
+If you set `INSIGHT_SERVER`, then a handler will automatically configured
+to send data to insight, e.g `export INSIGHT_SERVER=ws://foo:1234/publish`.

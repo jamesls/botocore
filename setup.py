@@ -23,8 +23,12 @@ def find_version(*file_paths):
     raise RuntimeError("Unable to find version string.")
 
 
-requires = ['jmespath>=0.7.1,<1.0.0',
-            'docutils>=0.10']
+requires = [
+    'jmespath>=0.7.1,<1.0.0',
+    'docutils>=0.10',
+    'websockets>=7.0,<8.0',
+    'uvloop>=0.12.1,<0.13.0',
+]
 
 
 if sys.version_info[:2] == (2, 6):
@@ -70,6 +74,7 @@ setup(
         ]
     },
     license="Apache License 2.0",
+    python_requires='>=3.7.0',
     classifiers=[
         'Development Status :: 5 - Production/Stable',
         'Intended Audience :: Developers',

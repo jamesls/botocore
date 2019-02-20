@@ -135,6 +135,7 @@ class Session(object):
         self._register_exceptions_factory()
         self._register_config_store()
         self._register_monitor()
+        self._register_insight()
 
     def _register_event_emitter(self):
         self._components.register_component('event_emitter', self._events)
@@ -188,6 +189,14 @@ class Session(object):
     def _register_monitor(self):
         self._internal_components.lazy_register_component(
             'monitor', self._create_csm_monitor)
+
+    def _register_insight(self):
+        insight_server = os.environ.get('INSIGHT_SERVER')
+        if insight_server is not None:
+            import botocore.insight
+            sender = botocore.insight.register_session(
+                self, insight_server=insight_server)
+        self._components.register_component('insight', sender)
 
     def _create_csm_monitor(self):
         if self.get_config_variable('csm_enabled'):
