@@ -23,7 +23,7 @@ import uvloop
 
 LOG = logging.getLogger(__name__)
 
-CLIENT_NAME = 'python'
+CLIENT_NAME = 'python-sdk-client'
 INSIGHT_SERVER_DEFAULT = os.environ.get('INSIGHT_SERVER')
 
 
