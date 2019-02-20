@@ -196,7 +196,7 @@ class Session(object):
             import botocore.insight
             sender = botocore.insight.register_session(
                 self, insight_server=insight_server)
-        self._components.register_component('insight', sender)
+            self._components.register_component('insight', sender)
 
     def _create_csm_monitor(self):
         if self.get_config_variable('csm_enabled'):
