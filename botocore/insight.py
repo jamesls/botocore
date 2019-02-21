@@ -256,20 +256,29 @@ class MessageSender(threading.Thread):
                                            self._SHUTDOWN)
 
     async def _handler(self):
+        count = 0
         async with websockets.connect(self.server_address,
                                       loop=self.loop) as websocket:
             while True:
                 try:
                     message = await self.queue.get()
                     if message is self._SHUTDOWN:
-                        print("Received exception: %s" % e)
                         LOG.debug("Shutting down as requested.")
                         return
                 except Exception as e:
-                    LOG.error("Received exception", exc_info=True)
+                    LOG.error("Received exception waiting on queue",
+                              exc_info=True)
                     continue
                 LOG.debug("MessageSender thread successfully awaited "
                           "message: %s", message)
-                await websocket.send(message)
+                try:
+                    await websocket.send(message)
+                    count += 1
+                except Exception:
+                    LOG.error("Received exception trying to send message: %s",
+                              message, exc_info=True)
+                    continue
                 LOG.debug("MessageSender thread successfully send message to "
                           "socket channel.")
+                if count % 100 == 0:
+                    LOG.info("Total messages sent to insight: %s", count)
